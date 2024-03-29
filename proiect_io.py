@@ -5,9 +5,9 @@ from datetime import datetime
 from flask import request, jsonify, Response, Flask
 
 app = Flask(__name__)
-r = Redis(host='localhost', port=6379, decode_responses=True)
+r = Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')), decode_responses=True)
 
-r.set('admin_id', 1)
+r.set('admin_id', 0)
 r.set('comp_id', 0)
 r.set('emp_id', 0)
 r.hset('admin', mapping={
@@ -15,7 +15,7 @@ r.hset('admin', mapping={
 	'name': 'admin'
 })
 
-def get_new_id(id_type: str) -> int:
+def get_new_id(id_type: str) -> str:
 	"""The function finds the next unused id and increments the global counter
 	Args:
 		id_type (str): The name of the type of id we want to get
@@ -60,7 +60,7 @@ def post_comp():
 		return jsonify({'status': 'BAD REQUEST'}), 400
 
 	if not isinstance(payload['name'], str) or not isinstance(payload['email'], str) or \
-		 not isinstance(payload['comp_type'], str) or not isinstance(payload['address']):
+		 not isinstance(payload['comp_type'], str) or not isinstance(payload['address'], str):
 
 		return jsonify({'status': 'BAD REQUEST'}), 400
 
@@ -75,31 +75,32 @@ def post_comp():
 		'name': payload['name'],
 		'address': payload['address'],
 		'email': payload['email'],
-		'comp_type': payload['comp_type'],
-		'list_id_emp': []
+		'comp_type': payload['comp_type']
 	})
 
-	return jsonify({'id': decode_id(id)}), 201
+	return jsonify({'id': id}), 201
 
 
-@app.route('/io/company/<int:company_id>', methods=['GET'])
+@app.route('/io/company/<string:company_id>', methods=['GET'])
 def get_company(company_id):
-    company_data = r.hgetall(f'company:{company_id}')
+    company_data = r.hgetall(company_id)
     if not company_data:
         return jsonify({'error': 'Company not found'}), 404
     return jsonify(company_data)
 
+
 # Get all companies
-@app.route('/company', methods=['GET'])
+@app.route('/io/company', methods=['GET'])
 def get_all_companies():
     companies = []
-    keys = db.keys('company:*')
+    keys = r.smembers('comp_ids')
     for key in keys:
-        companies.append(db.hgetall(key))
+        companies.append(r.hgetall(key))
     return jsonify(companies)
 
+
 # Update company by ID
-@app.route('/company/<int:company_id>', methods=['PUT'])
+@app.route('/company/<string:company_id>', methods=['PUT'])
 def update_company(company_id):
     data = request.json
     company_data = db.hgetall(f'company:{company_id}')
@@ -108,45 +109,49 @@ def update_company(company_id):
     db.hmset(f'company:{company_id}', data)
     return jsonify({'message': 'Company updated successfully'})
 
-# Delete company by ID
-@app.route('/company/<int:company_id>', methods=['DELETE'])
-def delete_company(company_id):
-    if db.exists(f'company:{company_id}'):
-        db.delete(f'company:{company_id}')
-        return jsonify({'message': 'Company deleted successfully'})
-    else:
-        return jsonify({'error': 'Company not found'}), 404
 
-@app.route('/admin', methods=['POST'])
+# Delete company by ID
+@app.route('/io/company/<string:company_id>', methods=['DELETE'])
+def delete_company(company_id):
+    if r.sismember('comp_ids', company_id):
+        r.srem('comp', r.hget(company_id, 'name'))
+        r.srem('comp_ids', company_id)
+        r.hdel(company_id, 'name', 'address', 'email', 'comp_type')
+        return jsonify({'message': 'Company deleted successfully'})
+
+    return jsonify({'message': 'SUCCESS'}), 200
+
+@app.route('/io/admin', methods=['POST'])
 def create_admin():
     admin = request.json
-    r.hmset('admin:' + admin['id'], admin)
-    return jsonify({'result': 'success'}), 201
+    admin_id = get_new_id('admin_id')
+    if r.exists(admin_id):
+        return jsonify({'error': 'Admin already exists'}), 400
+    r.sadd('admin_ids', admin_id)
+    r.set(admin_id, admin['name'])
+    return jsonify({'id': admin_id}), 201
 
-@app.route('/admin', methods=['GET'])
-def get_all_admins():
-    keys = r.keys('admin:*')
-    admins = []
-    for key in keys:
-        admins.append(r.hgetall(key))
-    return jsonify(admins)
-
-@app.route('/admin/<id>', methods=['GET'])
+@app.route('/io/admin/<string:id>', methods=['GET'])
 def get_admin(id):
-    admin = r.hgetall('admin:' + id)
+    admin = r.get(id)
     if not admin:
         return jsonify({'error': 'Admin not found'}), 404
     return jsonify(admin)
 
-@app.route('/admin/<id>', methods=['PUT'])
+@app.route('/io/admin/<string:id>', methods=['PUT'])
 def update_admin(id):
     admin = request.json
-    r.hmset('admin:' + id, admin)
+    if 'name' in admin:
+        r.set(id, admin['name'])
     return jsonify({'result': 'success'})
 
-@app.route('/admin/<id>', methods=['DELETE'])
+
+@app.route('/io/admin/<string:id>', methods=['DELETE'])
 def delete_admin(id):
-    r.delete('admin:' + id)
+    if not r.exists(id):
+        return jsonify({'error': 'Admin not found'}), 404
+    r.srem('admin_ids', id)  # Remove the admin id from the 'admins' set
+    r.delete(id)
     return jsonify({'result': 'success'})
 
 if __name__ == '__main__':
