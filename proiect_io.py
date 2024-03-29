@@ -100,14 +100,23 @@ def get_all_companies():
 
 
 # Update company by ID
-@app.route('/company/<string:company_id>', methods=['PUT'])
+@app.route('/io/company/<string:company_id>', methods=['PUT'])
 def update_company(company_id):
     data = request.json
-    company_data = db.hgetall(f'company:{company_id}')
+    company_data = r.hgetall(company_id)
     if not company_data:
         return jsonify({'error': 'Company not found'}), 404
-    db.hmset(f'company:{company_id}', data)
-    return jsonify({'message': 'Company updated successfully'})
+
+    if 'name' in data:
+        r.hset(company_id, 'name', data['name'])
+    if 'address' in data:
+        r.hset(company_id, 'address', data['address'])
+    if 'email' in data:
+        r.hset(company_id, 'email', data['email'])
+    if 'comp_type' in data:
+        r.hset(company_id, 'comp_type', data['comp_type'])
+
+    return jsonify({'message': r.hgetall(company_id)})
 
 
 # Delete company by ID
