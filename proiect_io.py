@@ -139,7 +139,7 @@ def delete_company(company_id):
 	if r.sismember('comp_ids', company_id):
 		r.srem('comp', r.hget(company_id, 'name'))
 		r.srem('comp_ids', company_id)
-		r.hdel(company_id, 'name', 'address', 'email', 'comp_type')
+		r.delete(company_id)
 		return jsonify({'message': 'Company deleted successfully'})
 
 	return jsonify({'message': 'SUCCESS'}), 200
@@ -318,6 +318,116 @@ def get_employee_books(id):
         'wishlist_books': wishlist_books,
         'listened_books': listened_books
     })
+
+
+@app.route("/io/book", methods=["POST"])
+def post_book():
+    payload = request.get_json()
+
+    if not payload:
+        return jsonify({'status': 'BAD REQUEST'}), 400
+
+    if not 'name' in payload or not 'author' in payload or not 'length' in payload \
+        or not 'publish_date' in payload or not 'description' in payload \
+        or not 'book_type' in payload or not 'link' in payload:
+        return jsonify({'status': 'BAD REQUEST'}), 400
+
+    if not isinstance(payload['name'], str) or not isinstance(payload['author'], str) \
+        or not isinstance(payload['length'], str) or not isinstance(payload['publish_date'], str) \
+        or not isinstance(payload['description'], str) or not isinstance(payload['book_type'], str) \
+        or not isinstance(payload['link'], str):
+        return jsonify({'status': 'BAD REQUEST'}), 400
+
+    # If the book already exists, then we return 409
+    if r.sismember('book', payload['name']) == 1:
+        return jsonify({'status': 'CONFLICT'}), 409
+
+    id = get_new_id('book_id')
+    r.sadd('book', payload['name'])
+    r.sadd('book_ids', id)
+    r.hset(id, mapping={
+        'name': payload['name'],
+        'author': payload['author'],
+        'length': payload['length'],
+        'publish_date': payload['publish_date'],
+        'description': payload['description'],
+        'book_type': payload['book_type'],
+        'link': payload['link']
+    })
+
+    return jsonify({'id': id}), 201
+
+
+@app.route('/io/book/<string:book_id>', methods=['GET'])
+def get_book(book_id):
+    book_data = r.hgetall(book_id)
+    if not book_data:
+        return jsonify({'error': 'Book not found'}), 404
+    return jsonify({
+        'id': book_id,
+        'name': book_data['name'],
+        'author': book_data['author'],
+        'length': book_data['length'],
+        'publish_date': book_data['publish_date'],
+        'description': book_data['description'],
+        'book_type': book_data['book_type'],
+        'link': book_data['link']
+    })
+
+
+@app.route('/io/book', methods=['GET'])
+def get_all_books():
+    books = []
+    keys = r.smembers('book_ids')
+    for key in keys:
+        book_data = r.hgetall(key)
+        books.append({
+            'id': key,
+            'name': book_data['name'],
+            'author': book_data['author'],
+            'length': book_data['length'],
+            'publish_date': book_data['publish_date'],
+            'description': book_data['description'],
+            'book_type': book_data['book_type'],
+            'link': book_data['link']
+        })
+    return jsonify(books)
+
+
+@app.route('/io/book/<string:book_id>', methods=['PUT'])
+def update_book(book_id):
+    data = request.json
+    book_data = r.hgetall(book_id)
+    if not book_data:
+        return jsonify({'error': 'Book not found'}), 404
+
+    if 'name' in data:
+        r.hset(book_id, 'name', data['name'])
+    if 'author' in data:
+        r.hset(book_id, 'author', data['author'])
+    if 'length' in data:
+        r.hset(book_id, 'length', data['length'])
+    if 'publish_data' in data:
+        r.hset(book_id, 'publish_date', data['publish_date'])
+    if 'description' in data:
+        r.hset(book_id, 'description', data['description'])
+    if 'book_type' in data:
+        r.hset(book_id, 'book_type', data['book_type'])
+    if 'link' in data:
+        r.hset(book_id, 'link', data['link'])
+
+    return jsonify({'message': r.hgetall(book_id)})
+
+
+@app.route('/io/book/<string:book_id>', methods=['DELETE'])
+def delete_book(book_id):
+    if r.sismember('book_ids', book_id):
+        r.srem('book', r.hget(book_id, 'name'))
+        r.srem('book_ids', book_id)
+        r.delete(book_id)
+        return jsonify({'message': 'Book deleted successfully'})
+
+    return jsonify({'message': 'SUCCESS'}), 200
 
 
 if __name__ == '__main__':
