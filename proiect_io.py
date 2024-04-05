@@ -279,45 +279,76 @@ def delete_employee(id):
 @app.route('/io/employee/<string:id>/books/active', methods=['POST'])
 def add_active_book(id):
     book_id = request.json.get('book_id')
-    if not r.exists(f'employee:{id}'):
+    if not r.exists(id):
         return jsonify({'error': 'Employee not found'}), 404
 
-    r.sadd(f'employee:{id}:books:active', book_id)
+    r.sadd(f'{id}:books:active', book_id)
     return jsonify({'message': 'Book added to active list successfully'})
+
 
 @app.route('/io/employee/<string:id>/books/wishlist', methods=['POST'])
 def add_wishlist_book(id):
     book_id = request.json.get('book_id')
-    if not r.exists(f'employee:{id}'):
+    if not r.exists(id):
         return jsonify({'error': 'Employee not found'}), 404
 
-    r.sadd(f'employee:{id}:books:wishlist', book_id)
+    r.sadd(f'{id}:books:wishlist', book_id)
     return jsonify({'message': 'Book added to wishlist successfully'})
 
 
 @app.route('/io/employee/<string:id>/books/listened', methods=['POST'])
 def add_listened_book(id):
     book_id = request.json.get('book_id')
-    if not r.exists(f'employee:{id}'):
+    if not r.exists(id):
         return jsonify({'error': 'Employee not found'}), 404
 
-    r.sadd(f'employee:{id}:books:listened', book_id)
+    r.sadd(f'{id}:books:listened', book_id)
     return jsonify({'message': 'Book added to listened list successfully'})
 
 
 @app.route('/io/employee/<string:id>/books', methods=['GET'])
 def get_employee_books(id):
-    if not r.exists(f'employee:{id}'):
+    if not r.exists(id):
         return jsonify({'error': 'Employee not found'}), 404
 
-    active_books = list(r.smembers(f'employee:{id}:books:active'))
-    wishlist_books = list(r.smembers(f'employee:{id}:books:wishlist'))
-    listened_books = list(r.smembers(f'employee:{id}:books:listened'))
+    active_books = list(r.smembers(f'{id}:books:active'))
+    wishlist_books = list(r.smembers(f'{id}:books:wishlist'))
+    listened_books = list(r.smembers(f'{id}:books:listened'))
     return jsonify({
         'active_books': active_books,
         'wishlist_books': wishlist_books,
         'listened_books': listened_books
     })
+
+
+@app.route('/io/employee/<string:id>/books/active', methods=['DELETE'])
+def delete_active_book(id):
+    book_id = request.json.get('book_id')
+    if not r.exists(id):
+        return jsonify({'error': 'Employee not found'}), 404
+
+    r.srem(f'{id}:books:active', book_id)
+    return jsonify({'message': 'Book removed from active list successfully'})
+
+
+@app.route('/io/employee/<string:id>/books/wishlist', methods=['DELETE'])
+def delete_wishlist_book(id):
+    book_id = request.json.get('book_id')
+    if not r.exists(id):
+        return jsonify({'error': 'Employee not found'}), 404
+
+    r.srem(f'{id}:books:wishlist', book_id)
+    return jsonify({'message': 'Book removed from wishlist successfully'})
+
+
+@app.route('/io/employee/<string:id>/books/listened', methods=['DELETE'])
+def delete_listened_book(id):
+    book_id = request.json.get('book_id')
+    if not r.exists(id):
+        return jsonify({'error': 'Employee not found'}), 404
+
+    r.srem(f'{id}:books:listened', book_id)
+    return jsonify({'message': 'Book removed from listened list successfully'})
 
 
 @app.route("/io/book", methods=["POST"])
