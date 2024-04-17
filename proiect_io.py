@@ -53,18 +53,6 @@ def decode_id(id: str) -> int:
 def post_comp():
 	payload = request.get_json()
 
-	if not payload:
-		return jsonify({'status': 'BAD REQUEST'}), 400
-
-	if not 'name' in payload or not 'address' in payload or not 'email' \
- 		or not 'comp_type' in payload:
-		return jsonify({'status': 'BAD REQUEST'}), 400
-
-	if not isinstance(payload['name'], str) or not isinstance(payload['email'], str) or \
-		 not isinstance(payload['comp_type'], str) or not isinstance(payload['address'], str):
-
-		return jsonify({'status': 'BAD REQUEST'}), 400
-
 	# If the company already exists, then we return 409
 	if r.sismember('comp', payload['name']) == 1:
 		return jsonify({'status': 'CONFLICT'}), 409
