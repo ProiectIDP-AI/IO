@@ -133,17 +133,6 @@ def delete_company(company_id):
 	return jsonify({'message': 'SUCCESS'}), 200
 
 
-@app.route('/io/admin', methods=['POST'])
-def create_admin():
-	admin = request.json
-	admin_id = get_new_id('admin_id')
-	if r.exists(admin_id):
-		return jsonify({'error': 'Admin already exists'}), 400
-	r.sadd('admin_ids', admin_id)
-	r.set(admin_id, admin['name'])
-	return jsonify({'id': admin_id}), 201
-
-
 @app.route('/io/admin/<string:id>', methods=['GET'])
 def get_admin(id):
 	admin = r.get(id)
@@ -163,24 +152,9 @@ def update_admin(id):
 	return jsonify({'result': 'success'})
 
 
-@app.route('/io/admin/<string:id>', methods=['DELETE'])
-def delete_admin(id):
-	if not r.exists(id):
-		return jsonify({'error': 'Admin not found'}), 404
-	r.srem('admin_ids', id)  # Remove the admin id from the 'admins' set
-	r.delete(id)
-	return jsonify({'result': 'success'})
-
-
 @app.route('/io/employee', methods=['POST'])
 def create_employee():
 	payload = request.get_json()
-
-	if not 'first_name' in payload  \
- 		or not 'last_name' in payload or not 'email' \
- 		or not 'email' in payload or not 'phone_number' \
-        in payload or not 'id_comp' in payload:
-		return jsonify({'status': 'BAD REQUEST'}), 400
 
 	company_data = r.hgetall(payload['id_comp'])
 	if not company_data:
@@ -342,20 +316,6 @@ def delete_listened_book(id):
 @app.route("/io/book", methods=["POST"])
 def post_book():
     payload = request.get_json()
-
-    if not payload:
-        return jsonify({'status': 'BAD REQUEST'}), 400
-
-    if not 'name' in payload or not 'author' in payload or not 'length' in payload \
-        or not 'publish_date' in payload or not 'description' in payload \
-        or not 'book_type' in payload or not 'link' in payload:
-        return jsonify({'status': 'BAD REQUEST'}), 400
-
-    if not isinstance(payload['name'], str) or not isinstance(payload['author'], str) \
-        or not isinstance(payload['length'], str) or not isinstance(payload['publish_date'], str) \
-        or not isinstance(payload['description'], str) or not isinstance(payload['book_type'], str) \
-        or not isinstance(payload['link'], str):
-        return jsonify({'status': 'BAD REQUEST'}), 400
 
     # If the book already exists, then we return 409
     if r.sismember('book', payload['name']) == 1:
