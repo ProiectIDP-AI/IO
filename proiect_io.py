@@ -104,6 +104,31 @@ def get_all_companies():
 	return jsonify(companies)
 
 
+
+# Return info about companies including password
+@app.route('/pass/company', methods=["GET"])
+def get_company_pass():
+	companies = []
+	keys = r.smembers('comp_ids')
+	for key in keys:
+		company_data = r.hgetall(key)
+
+		if 'password' in company_data:
+			password = company_data['password']
+		else:
+			password = ""
+
+		companies.append({
+			'id': key,
+			'name': company_data['name'],
+			'address': company_data['address'],
+			'email': company_data['email'],
+			'comp_type': company_data['comp_type'],
+			'password': password
+		})
+	return jsonify(companies)
+
+
 # Update company by ID
 @app.route('/io/company/<string:company_id>', methods=['PUT'])
 def update_company(company_id):
@@ -118,6 +143,19 @@ def update_company(company_id):
 		r.hset(company_id, 'address', data['address'])
 	if 'comp_type' in data:
 		r.hset(company_id, 'comp_type', data['comp_type'])
+
+	return jsonify({'message': r.hgetall(company_id)})
+
+
+# Add password
+@app.route('/pass/company/<string:company_id>', methods=['PUT'])
+def update_company_pass(company_id):
+	data = request.json
+	company_data = r.hgetall(company_id)
+	if not company_data:
+		return jsonify({'error': 'Company not found'}), 404
+
+	r.hset(company_id, 'password', data['password'])
 
 	return jsonify({'message': r.hgetall(company_id)})
 
@@ -144,6 +182,22 @@ def delete_company(company_id):
 
 	return jsonify({'message': 'SUCCESS'}), 200
 
+
+@app.route('/pass/admin', methods=['GET'])
+def get_admin():
+	admin = r.hgetall('admin')
+	return jsonify(admin)
+
+
+@app.route('/pass/admin', methods=['PUT'])
+def update_admin():
+	payload = request.get_json()
+	r.hset('admin', mapping={
+		'id': 'admin_id_1',
+		'name': 'admin',
+		'password': payload['password']
+	})
+	return jsonify({'message': 'SUCCESS'}), 200
 
 @app.route('/io/employee', methods=['POST'])
 def create_employee():
@@ -201,6 +255,41 @@ def get_all_employees():
 		})
 	return jsonify(employees)
 
+
+@app.route('/pass/employee', methods=['GET'])
+def get_employee_pass():
+	keys = r.smembers('emp_ids')
+	employees = []
+	for key in keys:
+		employee_data = r.hgetall(key)
+
+		if 'password' in employee_data:
+			password = employee_data['password']
+		else:
+			password = ""
+
+		employees.append({
+			'id': key,
+			'first_name': employee_data['first_name'],
+			'last_name': employee_data['last_name'],
+			'email': employee_data['email'],
+			'phone_number': employee_data['phone_number'],
+			'id_comp': employee_data['id_comp'],
+			'password': password
+		})
+	return jsonify(employees)
+
+
+@app.route('/pass/employee/<string:id>', methods=['PUT'])
+def update_employee_pass(id):
+	data = request.json
+	emp_data = r.hgetall(id)
+	if not emp_data:
+		return jsonify({'error': 'Company not found'}), 404
+
+	r.hset(id, 'password', data['password'])
+
+	return jsonify({'message': r.hgetall(emp_data)})
 
 @app.route('/io/employee/<string:id>', methods=['PUT'])
 def update_employee(id):
