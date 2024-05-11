@@ -30,6 +30,6 @@ jobs:
       - name: Install Curl
         run: sudo apt-get install curl -y
 
-      - name: Trigger Deployment
-        run: |
-          curl -XPOST http://ip172-18-0-117-covjt2gl2o90008hp42g-9000.direct.labs.play-with-docker.com/api/webhooks/da7c65a6-f9c0-49ae-88ee-6100968637b0
+      # - name: Trigger Deployment
+      #   run: |
+      #     curl -XPOST http://ip172-18-0-117-covjt2gl2o90008hp42g-9000.direct.labs.play-with-docker.com/api/webhooks/da7c65a6-f9c0-49ae-88ee-6100968637b0
