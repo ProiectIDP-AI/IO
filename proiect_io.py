@@ -25,7 +25,7 @@ def check_redis_connection(max_retries=10000, retry_interval=3):
 				'name': 'admin'
 			})
 			return True
-		except r.ConnectionError as e:
+		except Exception  as e:
 			print(f"Failed to connect to Redis: {e}")
 			retries += 1
 			time.sleep(retry_interval)
