@@ -5,32 +5,26 @@ from datetime import datetime
 from flask import request, jsonify, Response, Flask
 
 app = Flask(__name__)
-r = None
+max_retries=10000
+retry_interval=3
+retries = 0
+while retries < max_retries:
+	try:
+		r = Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')), decode_responses=True)
+		r.ping()
+		print("Connected to Redis successfully")
 
-def check_redis_connection(max_retries=10000, retry_interval=3):
-	retries = 0
-	while retries < max_retries:
-		try:
-			# Attempt to connect to Redis
-			r = Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')), decode_responses=True)
-			r.ping()  # This will raise an exception if connection fails
-			print("Connected to Redis successfully")
-			r = Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')), decode_responses=True)
-
-			r.set('comp_id', 0)
-			r.set('emp_id', 0)
-			r.set('book_id', 0)
-			r.hset('admin', mapping={
-				'id': 'admin_id_1',
-				'name': 'admin'
-			})
-			return True
-		except Exception  as e:
-			print(f"Failed to connect to Redis: {e}")
-			retries += 1
-			time.sleep(retry_interval)
-	print("Failed to connect to Redis after retries.")
-	return False
+		r.set('comp_id', 0)
+		r.set('emp_id', 0)
+		r.set('book_id', 0)
+		r.hset('admin', mapping={
+			'id': 'admin_id_1',
+			'name': 'admin'
+		})
+	except Exception as e:
+		retries += 1
+		time.sleep(retry_interval)
+		print("Failed to connect to Redis after retries.")
 
 def get_new_id(id_type: str) -> str:
 	"""The function finds the next unused id and increments the global counter
@@ -550,9 +544,4 @@ def delete_book(book_id):
 
 
 if __name__ == '__main__':
-	connected = check_redis_connection()
-
-	if connected:
-		app.run('0.0.0.0', debug=True)
-	else:
-		print("Exiting due to failed Redis connection.")
+	app.run('0.0.0.0', debug=True)
