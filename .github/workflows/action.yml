@@ -18,9 +18,9 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t auth .
-          docker tag auth andreiionut1411/auth:latest
-          docker push andreiionut1411/auth:latest
+          docker build -t io .
+          docker tag io andreiionut1411/io:latest
+          docker push andreiionut1411/io:latest
 
   deploy_service:
     name: Deploy Service
