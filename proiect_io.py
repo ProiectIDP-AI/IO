@@ -15,7 +15,7 @@ r.hset('admin', mapping={
 	'name': 'admin'
 })
 
-def check_redis_connection(max_retries=10, retry_interval=3):
+def check_redis_connection(max_retries=200, retry_interval=3):
 	retries = 0
 	while retries < max_retries:
 		try:
