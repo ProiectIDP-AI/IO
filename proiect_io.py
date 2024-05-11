@@ -15,6 +15,22 @@ r.hset('admin', mapping={
 	'name': 'admin'
 })
 
+def check_redis_connection(max_retries=10, retry_interval=3):
+	retries = 0
+	while retries < max_retries:
+		try:
+			# Attempt to connect to Redis
+			r = Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')), decode_responses=True)
+			r.ping()  # This will raise an exception if connection fails
+			print("Connected to Redis successfully")
+			return True
+		except r.ConnectionError as e:
+			print(f"Failed to connect to Redis: {e}")
+			retries += 1
+			time.sleep(retry_interval)
+	print("Failed to connect to Redis after retries.")
+	return False
+
 def get_new_id(id_type: str) -> str:
 	"""The function finds the next unused id and increments the global counter
 	Args:
@@ -533,4 +549,9 @@ def delete_book(book_id):
 
 
 if __name__ == '__main__':
-   app.run('0.0.0.0', debug=True)
+	connected = check_redis_connection()
+
+	if connected:
+		app.run('0.0.0.0', debug=True)
+	else:
+		print("Exiting due to failed Redis connection.")
