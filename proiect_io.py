@@ -5,17 +5,9 @@ from datetime import datetime
 from flask import request, jsonify, Response, Flask
 
 app = Flask(__name__)
-r = Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')), decode_responses=True)
+r = None
 
-r.set('comp_id', 0)
-r.set('emp_id', 0)
-r.set('book_id', 0)
-r.hset('admin', mapping={
-	'id': 'admin_id_1',
-	'name': 'admin'
-})
-
-def check_redis_connection(max_retries=200, retry_interval=3):
+def check_redis_connection(max_retries=10, retry_interval=3):
 	retries = 0
 	while retries < max_retries:
 		try:
@@ -23,6 +15,15 @@ def check_redis_connection(max_retries=200, retry_interval=3):
 			r = Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')), decode_responses=True)
 			r.ping()  # This will raise an exception if connection fails
 			print("Connected to Redis successfully")
+			r = Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')), decode_responses=True)
+
+			r.set('comp_id', 0)
+			r.set('emp_id', 0)
+			r.set('book_id', 0)
+			r.hset('admin', mapping={
+				'id': 'admin_id_1',
+				'name': 'admin'
+			})
 			return True
 		except r.ConnectionError as e:
 			print(f"Failed to connect to Redis: {e}")
