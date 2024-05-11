@@ -21,6 +21,7 @@ while retries < max_retries:
 			'id': 'admin_id_1',
 			'name': 'admin'
 		})
+		break
 	except Exception as e:
 		retries += 1
 		time.sleep(retry_interval)
