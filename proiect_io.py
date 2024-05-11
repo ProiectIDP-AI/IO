@@ -198,7 +198,7 @@ def delete_company(company_id):
 @app.route('/pass/admin', methods=['GET'])
 def get_admin():
 	admin = r.hgetall('admin')
-	return jsonify(admin)
+	return jsonify(admin), 201
 
 
 @app.route('/pass/admin', methods=['PUT'])
