@@ -7,7 +7,7 @@ from flask import request, jsonify, Response, Flask
 app = Flask(__name__)
 r = None
 
-def check_redis_connection(max_retries=10, retry_interval=3):
+def check_redis_connection(max_retries=10000, retry_interval=3):
 	retries = 0
 	while retries < max_retries:
 		try:
